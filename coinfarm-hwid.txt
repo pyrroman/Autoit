@@ -1,0 +1,1360 @@
+#NoTrayIcon
+#RequireAdmin
+#region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_UseUpx=n
+#AutoIt3Wrapper_Res_Description=Arena Coin Farmer
+#AutoIt3Wrapper_Res_Fileversion=1.0.0.0
+#AutoIt3Wrapper_Res_LegalCopyright=flownzu
+#AutoIt3Wrapper_Res_requestedExecutionLevel=asInvoker
+#endregion ;**** Directives created by AutoIt3Wrapper_GUI ****
+
+#include <String.au3>
+#include <GuiListView.au3>
+#include <GuiListBox.au3>
+#include <Array.au3>
+#include <Timers.au3>
+#include <GuiEdit.au3>
+#include <ButtonConstants.au3>
+#include <ComboConstants.au3>
+#include <EditConstants.au3>
+#include <GUIConstantsEx.au3>
+#include <ListViewConstants.au3>
+#include <StaticConstants.au3>
+#include <TabConstants.au3>
+#include <WindowsConstants.au3>
+#include <GuiComboBox.au3>
+#include <File.au3>
+#include <WinAPIEx.au3>
+#include <INet.au3>
+
+;---------------------------------------------------------------------------------------
+
+Global $myX, $myY, $myId, $loading = False, $loggedIn = False
+Global $curHp = 1, $curMp = 1, $maxHp = 1, $maxMp = 1, $hpPercent, $mpPercent, $charData, $charDatasize, $slotInfo[2]
+Global $scriptLine = 1, $blocked = False, $walking = False, $run = False, $listRequested = False, $currentPage = 1, $botReturned = False
+Global $sroPid, $hidden = False, $charName = "", $dcTimer = TimerInit(), $botPort
+Global $relog = False, $myLogin = "unknown", $myCharPacket = "unknown", $edxpid, $clientless = True, $myYsection
+Global $SilkroadVersion = FileReadLine("version.txt", 1), $Registered = 0, $Logiaa = 0, $pid
+Global $ScheduleList[1][1]
+
+$ScheduleList[0][0] = 0
+
+If @Compiled Then ToolLogin()
+
+Opt("GUIOnEventMode", 1)
+
+;---------------------------------------------------------------------------------------
+
+$GUI = GUICreate("Arena Coin Farmer - jreBot modified by flownzu", 662, 379, 199, 169)
+GUICtrlCreateTab(8, 8, 489, 361)
+GUICtrlCreateTabItem("Start Clientless")
+GUICtrlCreateGroup("Clientless", 25, 45, 329, 121)
+GUICtrlSetFont(-1, 8, 400, 0, "Arial")
+$clientlessButton = GUICtrlCreateButton("Login Clientless", 37, 72, 91, 33)
+$logoutButton = GUICtrlCreateButton("Logout", 48, 137, 67, 17)
+$idInput = GUICtrlCreateInput("Username", 145, 69, 89, 22)
+GUICtrlSetState(-1, $GUI_DISABLE)
+$pwInput = GUICtrlCreateInput("password", 145, 93, 89, 22, BitOR($GUI_SS_DEFAULT_INPUT, $ES_PASSWORD))
+GUICtrlSetState(-1, $GUI_DISABLE)
+$serverCombo = GUICtrlCreateCombo("Select server", 145, 117, 89, 25, BitOR($CBS_DROPDOWN, $CBS_AUTOHSCROLL))
+GUICtrlSetState(-1, $GUI_DISABLE)
+$loginButton = GUICtrlCreateButton("Login!", 145, 141, 91, 17)
+$characterCombo = GUICtrlCreateCombo("Select Character", 241, 69, 105, 25, BitOR($CBS_DROPDOWN, $CBS_AUTOHSCROLL))
+GUICtrlSetState(-1, $GUI_DISABLE)
+$selectCharacter = GUICtrlCreateButton("start", 249, 101, 91, 17)
+$Edit1 = GUICtrlCreateEdit("", 24, 176, 329, 177)
+$Button3 = GUICtrlCreateButton("Reset Register", 248, 120, 91, 17)
+GUICtrlSetOnEvent(-1, "ResetRegister")
+$Button4 = GUICtrlCreateButton("Create Char (EU)", 248, 140, 91, 17)
+GUICtrlSetOnEvent(-1, "CreateCharEU")
+GUICtrlCreateGroup("", -99, -99, 1, 1)
+GUICtrlCreateTabItem("Time Schedule")
+$Group1 = GUICtrlCreateGroup("Arena time", 24, 48, 449, 161)
+$Button1 = GUICtrlCreateButton("Add", 288, 168, 75, 25)
+GUICtrlSetOnEvent(-1, "AddTimesToSchedule")
+$Day = GUICtrlCreateLabel("Day/s:", 32, 72, 36, 17)
+$Checkbox1 = GUICtrlCreateCheckbox("Monday", 80, 72, 65, 17)
+$Checkbox2 = GUICtrlCreateCheckbox("Tuesday", 152, 72, 65, 17)
+$Checkbox3 = GUICtrlCreateCheckbox("Wednesday", 224, 72, 81, 17)
+$Checkbox4 = GUICtrlCreateCheckbox("Thursday", 80, 96, 65, 17)
+$Checkbox5 = GUICtrlCreateCheckbox("Friday", 152, 96, 57, 17)
+$Checkbox6 = GUICtrlCreateCheckbox("Saturday", 224, 96, 65, 17)
+$Checkbox7 = GUICtrlCreateCheckbox("Sunday", 304, 96, 81, 17)
+$Label5 = GUICtrlCreateLabel("Time:", 32, 128, 30, 17)
+$Combo1 = GUICtrlCreateInput("0", 128, 128, 73, 25)
+$Label6 = GUICtrlCreateLabel("Hour", 88, 128, 27, 17)
+$Label7 = GUICtrlCreateLabel("Minute", 216, 128, 36, 17)
+$Combo2 = GUICtrlCreateInput("0", 272, 128, 81, 25)
+$Label8 = GUICtrlCreateLabel("Do not forget: you must add the time", 32, 160, 175, 17)
+$Label9 = GUICtrlCreateLabel("when registrations open, not when the arena starts!", 32, 176, 245, 17)
+GUICtrlCreateGroup("", -99, -99, 1, 1)
+$Group2 = GUICtrlCreateGroup("Scheduled Arena Times", 24, 216, 449, 137)
+$Button2 = GUICtrlCreateButton("Delete Entry", 368, 248, 75, 25)
+GUICtrlSetOnEvent(-1, "DeleteTimesOnSchedule")
+$ListView1 = GUICtrlCreateListView("Day|Hour|Minute", 40, 248, 314, 86)
+_GUICtrlListView_SetColumnWidth(-1, 0, 170)
+_GUICtrlListView_SetColumnWidth(-1, 1, 65)
+_GUICtrlListView_SetColumnWidth(-1, 2, 65)
+GUICtrlCreateGroup("", -99, -99, 1, 1)
+GUICtrlCreateTabItem("")
+GUICtrlCreateGroup("Character", 512, 8, 137, 361)
+$charEdit = GUICtrlCreateEdit("", 520, 32, 121, 161)
+GUICtrlSetData(-1, "")
+$Label1 = GUICtrlCreateLabel("Total Arena Coins:", 520, 208, 91, 17)
+$Label2 = GUICtrlCreateLabel("Arena Coins this run:", 520, 232, 101, 17)
+$Label3 = GUICtrlCreateLabel("Arena Coins/h: ", 520, 256, 78, 17)
+$Label4 = GUICtrlCreateLabel("Arena Coins/day:", 520, 280, 86, 17)
+$Label10 = GUICtrlCreateLabel("Register Status: " & @CRLF & "Not registered.", 520, 328, 122, 33)
+GUICtrlCreateGroup("", -99, -99, 1, 1)
+CreateScheduleFromFile()
+GUISetState(@SW_SHOW)
+
+GeneratePorts()
+$pid = Run(@ScriptDir & "\proxy\phConnector.exe", @ScriptDir & "\proxy", @SW_HIDE)
+TCPStartup()
+$socket = TCPConnect("127.0.0.1", $botPort)
+
+If @error Then
+	MsgBox(16, "Error", "Connection failure")
+	ProcessClose($pid)
+	Exit
+EndIf
+
+GUISetOnEvent(-3, "Close")
+GUICtrlSetOnEvent($clientlessButton, "LaunchEDX")
+GUICtrlSetOnEvent($loginButton, "Login")
+GUICtrlSetOnEvent($selectCharacter, "SelectChar")
+GUICtrlSetOnEvent($logoutButton, "Logout")
+
+ProcessSetPriority(_WinAPI_GetCurrentProcessID(), 4)
+
+Func _ComboBoxFindString($hWnd, $sText)
+
+	Dim $MatchesArray[1]
+	$Items = _GUICtrlComboBox_GetListArray($hWnd)
+
+	For $i = 1 to $Items[0]
+		If StringInStr($Items[$i], $sText) Then
+			$MatchesArray[0] += 1
+			_ArrayAdd($MatchesArray, $i-1)
+		EndIf
+	Next
+
+	Return $MatchesArray
+
+EndFunc
+
+;---------------------------------------------------------------------------------------
+
+Func WriteLog($Text)
+
+	_GUICtrlEdit_AppendText($Edit1, $Text & @CRLF)
+	_GUICtrlEdit_LineScroll($Edit1, 0, _GUICtrlEdit_GetLineCount($Edit1))
+
+EndFunc
+
+Func ResetRegister()
+
+	$Registered = 0
+	GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Not registered.")
+
+EndFunc
+
+Func CreateCharEU()
+
+	$Name = InputBox("Char Name", "Give me a char name pls.")
+	$length = Rev(Hex(StringLen($Name), 4))
+	$Char = _StringToHex($Name)
+
+	If BitAND(GUICtrlGetState($characterCombo), $GUI_ENABLE) = $GUI_ENABLE Then
+		InjectPacket("7007", "01" & $Length & $Char & "7D39000022C62C0000C72C0000C82C0000E9290000")
+		WriteLog("Char " & $Name & " created.")
+	EndIf
+
+EndFunc
+
+If $CmdLine[0] > 0 Then
+
+	For $i = 1 To $CmdLine[0]
+		If StringInStr($CmdLine[$i], "ID:") Then
+			Global $CmdLineID = StringTrimLeft($CmdLine[$i], 3)
+		ElseIf StringInStr($CmdLine[$i], "PW:")Then
+			Global $CmdLinePW = StringTrimLeft($CmdLine[$i], 3)
+		ElseIf StringInStr($CmdLine[$i], "SERVER:") Then
+			Global $CmdLineSERVER = StringTrimLeft($CmdLine[$i], 7)
+		ElseIf StringInStr($CmdLine[$i], "CHAR:") Then
+			Global $CmdLineCHAR = StringTrimLeft($CmdLine[$i], 5)
+		EndIf
+	Next
+
+	If IsDeclared("CmdLineID") And IsDeclared("CmdLinePW") And IsDeclared("CmdLineSERVER") And IsDeclared("CmdLineCHAR") Then
+		LaunchEDX()
+	EndIf
+
+EndIf
+
+While Sleep(10)
+
+	PacketFunc()
+
+	If TimerDiff($dcTimer) > 120000 Then
+		If $myLogin <> "unknown" Then
+			$relog = True
+			LaunchEDX()
+		EndIf
+		$dcTimer = TimerInit()
+	EndIf
+
+	;----update char edit box/autopotion-----------------
+	$hpPercent = Round($curHp * 100 / $maxHp)
+	$mpPercent = Round($curMp * 100 / $maxMp)
+
+	$text = "HP: " & @CRLF & $curHp & " / " & $maxHp & " (" & $hpPercent & "%)" & @CRLF & @CRLF
+	$text &= "MP: " & @CRLF & $curMp & " / " & $maxMp & " (" & $mpPercent & "%)" & @CRLF & @CRLF
+	$text &= "X: " & $myX & @CRLF & @CRLF
+	$text &= "Y: " & $myY
+	If GUICtrlRead($charEdit) <> $text Then GUICtrlSetData($charEdit, $text)
+
+	If Distance($myX, 15210, $myY, 4621) < 50 Then
+		$Registered = 3
+		GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Arena.")
+	EndIf
+
+	If Distance($myX, 15284, $myY, 4621) < 50 Then
+		$Registered = 3
+		GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Arena.")
+	EndIf
+
+	If Distance($myX, 15284, $myY, 4621) > 50 And $Registered = 3 Then
+		$Registered = 0
+		GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Not registered.")
+	EndIf
+
+	If Distance($myX, 15210, $myY, 4621) > 50 And $Registered = 3 Then
+		$Registered = 0
+		GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Not registered.")
+	EndIf
+
+	If _ArraySearch($ScheduleList, _WDAYToWeekday(@WDAY) & " " & @HOUR & ":" & @MIN) <> -1 And $Registered = 0 And $ScheduleList[0][0] <> 0 Then
+		WriteLog("Reached Arena Schedule.")
+		If $loggedIn = 1 Then
+			WriteLog("Char logged in already. Registering at the Arena.")
+			If RegisterArena() = 1 Then
+				WriteLog("Arena registration completed.")
+				GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Registered.")
+				$Registered = 1
+			Else
+				WriteLog("Arena registration failed.")
+				GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Error registering.")
+				$Registered = 2
+			EndIf
+		Else
+			WriteLog("Char not logged in. Trying to login with last known login.")
+			If $myLogin <> "unknown" And $myCharPacket <> "unknown" Then
+				WriteLog("Relogin char.")
+				$relog = True
+				LaunchEDX()
+				$Timer = TimerInit()
+				Do
+					PacketFunc()
+				Until $loggedIn = 1 Or TimerDiff($Timer) > 30000
+				Sleep(5000)
+				If RegisterArena() = 1 Then
+					WriteLog("Arena registration completed.")
+					$Registered = 1
+					GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Registered.")
+				Else
+					WriteLog("Arena registration failed.")
+					GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Error registering.")
+					$Registered = 2
+				EndIf
+			Else
+				WriteLog("No valid login information to login char.")
+				GUICtrlSetData($Label10, "Register Status: " & @CRLF & "Error registering.")
+				$Registered = 2
+			EndIf
+		EndIf
+	EndIf
+
+WEnd
+
+;GUI EVENT FUNCTIONS--------------------------------------------------------------------------
+
+Func Close()
+	TCPShutdown()
+	ProcessClose($pid)
+	ProcessClose($sroPid)
+	ProcessClose($edxpid)
+	Exit
+EndFunc   ;==>Close
+
+Func RegisterArena()
+
+	If InTown2() = "hotan" Then
+		$ArenaManagerID = "A4020000"
+	ElseIf InTown2() = "downhang" Then
+		$ArenaManagerID = "92010000"
+	ElseIf InTown2() = "jangan" Then
+		$ArenaManagerID = "80010000"
+	ElseIf InTown2() = "samarkand" Then
+		$ArenaManagerID = "50010000"
+	ElseIf InTown2() = "const" Then
+		$ArenaManagerID = "F0020000"
+	ElseIf InTown2() = "alexN" Then
+		WriteLog("No arena manager in Alexandria North.")
+		Return -1
+	ElseIf InTown2() = "alexS" Then
+		$ArenaManagerID = "C1030000"
+	Else
+		WriteLog("Char is not standing in town. Aborting registration process.")
+		Return -1
+	EndIf
+	SelectWait7045($ArenaManagerID)
+	InjectPacket("704B", $ArenaManagerID)
+	InjectPacket("74D3", "010001")
+	Return 1
+
+EndFunc
+
+;---------------------------------------------------------------------------------------
+
+Func ReadPacket()
+	$recv = Hex(Binary(TCPRecv($socket, 2)))
+	If $recv = "" Then
+		Return ""
+	Else
+		$size = Dec(StringMid($recv, 3, 2) & StringMid($recv, 1, 2))
+		$recv &= Hex(Binary(TCPRecv($socket, $size + 4)))
+		Return $recv
+	EndIf
+EndFunc   ;==>ReadPacket
+
+Func InjectPacket($opcode, $data, $security = "0100")
+	If $clientless = True Then
+		If $opcode = "B034" Or $opcode = "0001" Or $opcode = "0002" Then
+			Return 0
+		EndIf
+	EndIf
+
+	$size = Hex(Int(StringLen($data) / 2), 4)
+	$size = StringMid($size, 3, 2) & StringMid($size, 1, 2)
+	$opcode = StringMid($opcode, 3, 2) & StringMid($opcode, 1, 2)
+	If $clientless = True Then $security = "0000"
+	$packet = _HexToString($size & $opcode & $security & $data)
+	TCPSend($socket, $packet)
+EndFunc   ;==>InjectPacket
+
+Func Rev($val)
+	$result = ""
+	For $i = 1 To Int(StringLen($val) / 2)
+		$byte = StringRight($val, 2)
+		$val = StringTrimRight($val, 2)
+		$result &= $byte
+	Next
+	Return $result
+EndFunc   ;==>Rev
+
+Func GeneratePorts()
+	Global $gatewayPort = Random(16000, 19000, 1)
+	Global $botPort = Random(22500, 24000, 1)
+	$read = FileRead(@ScriptDir & "\proxy\phConnector.xml")
+
+	FileDelete(@ScriptDir & "\proxy\phConnector.xml")
+	$read = StringRegExpReplace($read, "<BotBindPort>(.{5}?)</BotBindPort>", "<BotBindPort>" & $botPort & "</BotBindPort>")
+	$read = StringRegExpReplace($read, "<GatewayBindPort>(.{5}?)</GatewayBindPort>", "<GatewayBindPort>" & $gatewayPort & "</GatewayBindPort>")
+	$read = StringRegExpReplace($read, "<AgentBindPort>(.{5}?)</AgentBindPort>", "<AgentBindPort>" & $gatewayPort + 1 & "</AgentBindPort>")
+
+	FileWrite(@ScriptDir & "\proxy\phConnector.xml", $read)
+EndFunc   ;==>GeneratePorts
+
+Func GetHwnd($pid)
+	If $pid = 0 Then Return -1
+	$list = WinList("[CLASS:CLIENT]")
+	For $i = 1 To $list[0][0]
+		If WinGetProcess($list[$i][1]) = $pid Then
+			Return $list[$i][1]
+		EndIf
+	Next
+	Return -1
+EndFunc   ;==>GetHwnd
+
+;-----------Packet parsing functions by pushedx!----------------------------------------
+
+Func BeginParse($buffer, $size)
+	Global $globalParseIndex = 1
+	Global $globalParseSize = $size
+	Global $globalParseBuffer = $buffer
+EndFunc   ;==>BeginParse
+
+Func ParseByte()
+	$result = StringMid($globalParseBuffer, $globalParseIndex, 2)
+	$globalParseIndex = $globalParseIndex + 2
+	Return $result
+EndFunc   ;==>ParseByte
+
+Func ParseWord()
+	$low = ParseByte()
+	$hi = ParseByte()
+	Return $hi & $low
+EndFunc   ;==>ParseWord
+
+Func ParseDword()
+	$low = ParseWord()
+	$hi = ParseWord()
+	Return $hi & $low
+EndFunc   ;==>ParseDword
+
+Func ParseQWord()
+	$low = ParseDword()
+	$hi = ParseDword()
+	Return $hi & $low
+EndFunc   ;==>ParseQWord
+
+Func ParseAscii($length)
+	$result = StringMid($globalParseBuffer, $globalParseIndex, $length * 2)
+	$globalParseIndex = $globalParseIndex + ($length * 2)
+	$len = StringLen($result)
+	$strResult = ""
+	For $i = 1 To $len Step 2
+		$strResult = $strResult & Chr(Dec(StringMid($result, $i, 2)))
+	Next
+	Return $strResult
+EndFunc   ;==>ParseAscii
+
+Func ParseUnicode($length)
+	$result = StringMid($globalParseBuffer, $globalParseIndex, $length * 4)
+	$globalParseIndex = $globalParseIndex + ($length * 4)
+	$len = StringLen($result)
+	$strResult = ""
+	For $i = 1 To $len Step 4
+		$strResult = $strResult & ChrW(Dec(StringMid($result, $i, 4)))
+	Next
+	Return $strResult
+EndFunc   ;==>ParseUnicode
+
+;----------------------------------------------------------------------------------------
+
+Func GetSlot()
+	For $i = 0 To UBound($slotInfo) - 1
+		If $slotInfo[$i] = "" And $i > 12 Then
+			Return $i
+		EndIf
+	Next
+	Return -1
+EndFunc   ;==>GetSlot
+
+;-------------------------------------------------------------------------------------------------------
+
+Func SelectWait7045($id)
+	$sTimer = TimerInit()
+	InjectPacket("7045", $id)
+	Global $currentnpcId = Rev($id)
+
+	Do
+		If TimerDiff($sTimer) > 250 Then
+			InjectPacket("7045", $id)
+			Global $currentnpcId = Rev($id)
+			$sTimer = TimerInit()
+		EndIf
+
+		If $walking = False Then ExitLoop
+	Until PacketFunc() = "selected"
+EndFunc   ;==>SelectWait7045
+
+Func WaitB034()
+	$packetOpcode = ""
+	Do
+		$packetOpcode = PacketFunc()
+		If $walking = False Then ExitLoop
+	Until $packetOpcode = "B034"
+EndFunc   ;==>WaitB034
+
+Func B034Update($source, $dest, $amount)
+	$tempSource = $slotInfo[$source]
+	$tempDest = $slotInfo[$dest]
+	Dim $type = "", $maxAmount = 0
+
+	For $i = 1 To 8
+		Switch $i
+			Case 1
+				$type = "hp,"
+				$maxAmount = 50
+			Case 2
+				$type = "mp,"
+				$maxAmount = 50
+			Case 3
+				$type = "pill,"
+				$maxAmount = 50
+			Case 4
+				$type = "arrow,"
+				$maxAmount = 250
+			Case 5
+				$type = "bolt,"
+				$maxAmount = 250
+			Case 6
+				$type = "return,"
+				$maxAmount = 50
+			Case 7
+				$type = "speed,"
+				$maxAmount = 10
+			Case 8
+				$type = "vigor,"
+				$maxAmount = 50
+		EndSwitch
+
+		If StringInStr($tempSource, $type) And StringInStr($tempDest, $type) Then
+			$arrayDest = StringSplit($tempDest, ",", 2)
+			$arraySource = StringSplit($tempSource, ",", 2)
+
+			If $arrayDest[1] = $maxAmount Or $arraySource[1] = $maxAmount Then
+				$slotInfo[$dest] = $tempSource
+				$slotInfo[$source] = $tempDest
+
+				Return 0
+			Else
+				$slotInfo[$dest] = $type & $amount + $arrayDest[1]
+			EndIf
+
+			If $arraySource[1] - $amount = 0 Then
+				$slotInfo[$source] = ""
+			Else
+				$slotInfo[$source] = $type & $arraySource[1] - $amount
+			EndIf
+
+			Return 0
+		EndIf
+
+		If StringInStr($tempSource, $type) And StringInStr($tempDest, $type) = 0 Then
+			$arrayDest = StringSplit($tempDest, ",", 2)
+			$arraySource = StringSplit($tempSource, ",", 2)
+
+			If $amount = $arraySource[1] Then
+				$slotInfo[$dest] = $tempSource
+				$slotInfo[$source] = $tempDest
+			Else
+				$slotInfo[$dest] = $type & $amount
+				$slotInfo[$source] = $type & $arraySource[1] - $amount
+			EndIf
+			Return 0
+		EndIf
+	Next
+
+	$slotInfo[$dest] = $tempSource
+	$slotInfo[$source] = $tempDest
+EndFunc   ;==>B034Update
+
+Func Distance($x1, $x2, $y1, $y2)
+	Return Sqrt(Abs($x1 - $x2) ^ 2 + Abs($y1 - $y2) ^ 2)
+EndFunc   ;==>Distance
+
+Func Walk($x, $y)
+	$xPosition = Int(Mod($x, 192) * 10)
+	$yPosition = Int(Mod($y, 192) * 10)
+	$xSection = Int(($x - $xPosition / 10) / 192 + 135)
+	$ySection = Int(($y - $yPosition / 10) / 192 + 92)
+	InjectPacket("7021", "01" & Hex($xSection, 2) & Hex($ySection, 2) & Rev(Hex($xPosition, 4)) & "0000" & Rev(Hex($yPosition, 4)))
+EndFunc
+
+;--------------------------------------------------------------------------------------------
+
+Func InjectDll($pid, $dllpath)
+	$kernel32 = DllOpen("kernel32.dll")
+
+	$pHandle = DllCall($kernel32, "int", "OpenProcess", "int", 0x1F0FFF, "int", 0, "int", $pid)
+	$pHandle = $pHandle[0]
+
+	$pLibRemote = DllCall($kernel32, "int", "VirtualAllocEx", "int", $pHandle, "short", 0, "int", 0x1000, "int", 0x1000, "int", 4)
+	$pLibRemote = $pLibRemote[0]
+
+	For $i = 0 To StringLen($dllpath)
+		$ret = DllCall("kernel32.dll", "int", "WriteProcessMemory", "int", $pHandle, "int", $pLibRemote + $i, "int*", Asc(StringMid($dllpath, $i + 1, 1)), "int", 1, "int", 0)
+	Next
+
+	$modHandle = DllCall($kernel32, "long", "GetModuleHandle", "str", "kernel32.dll")
+	$modHandle = $modHandle[0]
+
+	$LoadLibraryA = DllCall($kernel32, "long", "GetProcAddress", "long", $modHandle, "str", "LoadLibraryA")
+	$LoadLibraryA = $LoadLibraryA[0]
+
+	$hThread = DllCall($kernel32, "int", "CreateRemoteThread", "int", $pHandle, "int", 0, "int", 0, "long", $LoadLibraryA, "long", $pLibRemote, "int", 0, "int", 0)
+	$hThread = $hThread[0]
+
+	DllCall($kernel32, "int", "VirtualFreeEx", "int", $pHandle, "int", $pLibRemote, "int", 0x1000, "int", 0x8000)
+	DllCall($kernel32, "int", "CloseHandle", "int", $hThread)
+	DllCall($kernel32, "int", "CloseHandle", "int", $pHandle)
+
+	DllClose($kernel32)
+EndFunc   ;==>InjectDll
+
+;---------------------------------------------------------------------------------------------
+
+Func LaunchEDX()
+	$loggedIn = False
+	GUICtrlSetState($clientlessButton, $GUI_DISABLE)
+	$clientless = True
+	ProcessClose($pid)
+	ProcessClose($sroPid)
+	ProcessClose($edxpid)
+	$socket = 0
+	$edxpid = Run(@ScriptDir & "\proxy\edxSilkroadProxy.exe", @ScriptDir & "\proxy", @SW_HIDE)
+	$edxPort = Random(16000, 19000, 1)
+	$Timer = TimerInit()
+
+	$edxHwnd = ""
+	Do
+		$list = WinList("[CLASS:#32770]")
+		For $i = 1 To $list[0][0]
+			If WinGetProcess($list[$i][1]) = $edxpid Then
+				$edxHwnd = $list[$i][1]
+			EndIf
+		Next
+	Until $edxHwnd <> "" Or TimerDiff($Timer) > 10000
+	WinWait($edxHwnd)
+	Sleep(1000)
+	If TimerDiff($Timer) > 10000 Then
+		WriteLog("Connection error. Relaunching edx.")
+		LaunchEDX()
+		Return -1
+	EndIf
+
+	ControlSetText($edxHwnd, "", "[CLASS:Edit; INSTANCE:1]", $edxPort)
+	ControlSetText($edxHwnd, "", "[CLASS:Edit; INSTANCE:2]", $edxPort + 1)
+	ControlSetText($edxHwnd, "", "[CLASS:Edit; INSTANCE:3]", "212.24.57.34")
+	ControlClick($edxHwnd, "", "[CLASS:Button; INSTANCE:2]")
+	ControlClick($edxHwnd, "", "[CLASS:Button; INSTANCE:4]")
+
+	$socket = TCPConnect("127.0.0.1", $edxPort)
+	ConsoleWrite($socket & @CRLF & $edxPort & @CRLF & @CRLF)
+	If @error Then
+		WriteLog("Connection error. Relaunching edx.")
+		LaunchEDX()
+		Return -1
+	EndIf
+EndFunc   ;==>LaunchEDX
+
+Func _SetText($hWnd, $text)
+	DllCall("user32.dll", "long", "SendMessage", "hwnd", $hWnd, "int", 12, "int", "", "str", $text)
+EndFunc   ;==>_SetText
+
+Func _SendClick($hWnd)
+	DllCall("user32.dll", "long", "SendMessage", "hwnd", $hWnd, "int", 245, "int", "", "int", "")
+EndFunc   ;==>_SendClick
+
+Func Login()
+	$n = GUICtrlRead($idInput)
+	$p = GUICtrlRead($pwInput)
+	$s = GUICtrlRead($serverCombo)
+	If $s = "Select server" Then
+		MsgBox(16, "Error", "please select server")
+	Else
+		GUICtrlSetState($loginButton, $GUI_DISABLE)
+		$s = StringSplit($s, ",", 2)
+		$locale = Hex(40, 2)
+		$nLength = Rev(Hex(StringLen($n), 4))
+		$n = _StringToHex($n)
+		$pLength = Rev(Hex(StringLen($p), 4))
+		$p = _StringToHex($p)
+		$s = Rev(Hex($s[1], 4))
+		$myLogin = $locale & $nLength & $n & $pLength & $p & $s
+		InjectPacket("6102", $locale & $nLength & $n & $pLength & $p & $s, "0300")
+	EndIf
+EndFunc   ;==>Login
+
+Func Logout()
+	If $run = True Or $walking = True Then
+	Else
+		InjectPacket("7005", "01", "0300")
+		GUICtrlSetState($clientlessButton, $GUI_ENABLE)
+		$loggedIn = 0
+	EndIf
+EndFunc   ;==>Logout
+
+Func SelectChar()
+	$name = GUICtrlRead($characterCombo)
+	If $name = "Select Character" Then
+		MsgBox(16, "Error", "Select character")
+	Else
+		GUICtrlSetState($selectCharacter, $GUI_DISABLE)
+		$length = Rev(Hex(StringLen($name), 4))
+		$name = _StringToHex($name)
+		$myCharPacket = $length & $name
+		InjectPacket("7001", $length & $name, "0300")
+		GUICtrlSetState($characterCombo, $GUI_DISABLE)
+	EndIf
+EndFunc   ;==>SelectChar
+
+Func UnblockB034()
+	InjectPacket("0002", Rev("B034"))
+	$blocked = False
+EndFunc   ;==>UnblockB034
+
+Func BlockB034()
+	InjectPacket("0001", Rev("B034"))
+	$blocked = True
+EndFunc   ;==>BlockB034
+
+Func PacketFunc()
+	$recv = ReadPacket()
+	$size = Dec(StringMid($recv, 3, 2) & StringMid($recv, 1, 2))
+	$opcode = StringMid($recv, 7, 2) & StringMid($recv, 5, 2)
+	$data = StringMid($recv, 13)
+
+	If $recv <> "" Then $dcTimer = TimerInit()
+
+	Switch $opcode
+
+		Case "2001" ;Identify
+			If $clientless = True Then
+				BeginParse($data, $size)
+				$field1 = Dec(ParseWord())
+				$field2 = ParseAscii($field1)
+				If $field2 == "GatewayServer" Then
+					$locale = Hex(40, 2)
+					$length = Rev(Hex(9, 4))
+					$string = _StringToHex("SR_Client")
+					$version = Rev(Hex($SilkroadVersion, 8))
+					InjectPacket("6100", $locale & $length & $string & $version, "0300")
+				EndIf
+			EndIf
+
+		Case "A101" ;Server stats
+			If $clientless = True Then
+				GUICtrlSetState($idInput, $GUI_ENABLE)
+				GUICtrlSetState($pwInput, $GUI_ENABLE)
+				GUICtrlSetState($serverCombo, $GUI_ENABLE)
+				GUICtrlSetState($loginButton, $GUI_ENABLE)
+				BeginParse($data, $size)
+
+				$field1 = Dec(ParseByte())
+				$field2 = Dec(ParseByte())
+				$coreNameLength = Dec(ParseWord())
+				$coreName = ParseAscii($coreNameLength)
+				$nullTerm = ParseByte() ; null terminator
+
+				$nextServer = Dec(ParseByte())
+				While $nextServer = 1
+					$serverId = Dec(ParseWord())
+					$serverNameLength = Dec(ParseWord())
+					$serverName = ParseAscii($serverNameLength)
+					$serverCur = Dec(ParseWord())
+					$serverMax = Dec(ParseWord())
+					$serverState = Dec(ParseByte())
+					$nextServer = Dec(ParseByte())
+					GUICtrlSetData($serverCombo, $serverName & "," & $serverId, 1)
+				WEnd
+
+				If $CmdLine[0] > 0 Then
+					$locale = Hex(40, 2)
+					$nLength = Rev(Hex(StringLen($CmdLineID), 4))
+					$n = _StringToHex($CmdLineID)
+					$pLength = Rev(Hex(StringLen($CmdLinePW), 4))
+					$p = _StringToHex($CmdLinePW)
+					$s = Rev(Hex($CmdLineSERVER, 4))
+					InjectPacket("6102", $locale & $nLength & $n & $pLength & $p & $s, "0300")
+				Else
+					If $relog = True Then
+						InjectPacket("6102", $myLogin, "0300")
+					EndIf
+				EndIf
+			EndIf
+
+		Case "A102" ; Login result
+			If $clientless = True Then
+				BeginParse($data, $size)
+				$result = Dec(ParseByte())
+				If $result = 1 Then
+					$loginId = Dec(ParseDword())
+					$ipNameLength = Dec(ParseWord())
+					$ipName = ParseAscii($ipNameLength)
+					$ipPort = Dec(ParseWord())
+					$socket = 0
+					$socket = TCPConnect($ipName, $ipPort) ; All we have to do is connect to the new IP/Port
+				Else
+					MsgBox(16, "Error", "There was an error loggin in to this account.")
+				EndIf
+			EndIf
+
+		Case "A103" ; World server login result
+			If $clientless = True Then
+				BeginParse($data, $size)
+				$result = Dec(ParseByte())
+				If $result = 1 Then
+					InjectPacket("7007", "02", "0300")
+				EndIf
+			EndIf
+
+		Case "B007" ; Char listing
+			If $clientless = True Then
+				GUICtrlSetState($characterCombo, $GUI_ENABLE)
+				GUICtrlSetState($selectCharacter, $GUI_ENABLE)
+				BeginParse($data, $size)
+				$operation = Dec(ParseByte())
+				If $operation = 2 Then
+					$result = Dec(ParseByte())
+					$charCount = Dec(ParseByte())
+					For $c = 1 To $charCount
+						$charType = Dec(ParseDword())
+						$charNameLength = Dec(ParseWord())
+						$charName = ParseAscii($charNameLength)
+
+						GUICtrlSetData($characterCombo, $charName, 1)
+
+						$charVol = Dec(ParseByte())
+						$charLvl = Dec(ParseByte())
+						$charExp = Dec(ParseQWord())
+						$charStr = Dec(ParseWord())
+						$charInt = Dec(ParseWord())
+						$charAttr = Dec(ParseWord())
+						$charHp = Dec(ParseDword())
+						$charMp = Dec(ParseDword())
+						ParseWord();new unk
+						ParseQword();new unk
+						$itemCount = Dec(ParseByte())
+						For $i = 1 To $itemCount
+							$itemId = Dec(ParseDword())
+							$itemPlus = Dec(ParseByte())
+						Next
+
+						$itemCount = Dec(ParseByte())
+						For $i = 1 To $itemCount
+							$itemId = Dec(ParseDword())
+							$itemPlus = Dec(ParseByte())
+						Next
+					Next
+				EndIf
+
+				If $CmdLine[0] > 0 Then
+					$length = Rev(Hex(StringLen($CmdLineCHAR), 4))
+					$name = _StringToHex($CmdLineCHAR)
+					InjectPacket("7001", $length & $name, "0300")
+				Else
+					If $relog = True Then
+						InjectPacket("7001", $myCharPacket, "0300")
+					EndIf
+				EndIf
+
+			EndIf
+
+		Case "6102" ;send login info
+			$myLogin = $data
+
+		Case "7001" ;select character
+			$myCharPacket = $data
+
+		Case "3013" ;chardata
+			$loading = True
+			$charData = $data
+			$charDatasize = $size
+
+		Case "3015" ;single spawn
+			BeginParse($data, $size)
+			$model = ParseDword()
+
+		Case "3016" ;single despawn
+			BeginParse($data, $size)
+			$id = ParseDword()
+
+		Case "3017" ;groupspawn start
+			BeginParse($data, $size)
+			Global $spawnType = ParseByte()
+			Global $spawnAmount = Dec(ParseWord())
+
+		Case "3019" ;groupspawn/despawn
+			BeginParse($data, $size)
+			If $spawnType = "01" Then
+				If InTown2() = False Then
+
+				Else
+
+				EndIf
+			ElseIf $spawnType = "02" Then
+				For $i = 0 To $spawnAmount
+					$id = ParseDword()
+				Next
+			EndIf
+
+		Case "3020" ;char spawn
+			If $clientless = True Then
+				InjectPacket("3012", "", "0300")
+			EndIf
+
+			BeginParse($charData, $charDatasize)
+			$unk1 = ParseDword()
+			$model = ParseDword()
+			$volume = Dec(ParseByte())
+			$level = Dec(ParseByte())
+			$levelmax = Dec(ParseByte())
+			$curexp = ParseQword()
+			$spexp = ParseDword()
+			$gold = ParseQword()
+			$sp = Dec(ParseDword())
+			$statp = Dec(ParseWord())
+			$zerkOrb = Dec(ParseByte())
+			$unk2 = ParseDword()
+			$curHp = Dec(ParseDword())
+			$curMp = Dec(ParseDword())
+			$idc = ParseDword()
+			$idc = ParseByte()
+			$idc = ParseByte()
+			$idc = ParseByte()
+			$idc = ParseByte()
+			$idc = ParseByte()
+			$idc = ParseByte()
+			$maxSlot = Dec(ParseByte())
+			$itemCount = Dec(ParseByte())
+
+			Global $slotInfo[$maxSlot]
+
+			For $z = 0 To $itemCount - 1
+				$slot = Dec(ParseByte())
+				ParseDword() ;unknown
+				$id = ParseDword()
+			Next
+
+			;-------------------------------------------------------
+
+			BeginParse($data, $size)
+			$myId = ParseDword()
+			$pos = StringInStr($charData, Rev($myId))
+			$skippedData = StringMid($charData, $pos)
+			BeginParse($skippedData, Int(StringLen($skippedData) / 2))
+			ParseDword()
+			$xSection = Dec(ParseByte())
+			$ySection = Dec(ParseByte())
+			$xOffset = _WinAPI_IntToFloat(Dec(ParseDword()))
+			$zOffset = _WinAPI_IntToFloat(Dec(ParseDword()))
+			$yOffset = _WinAPI_IntToFloat(Dec(ParseDword()))
+			$myX = Round(($xSection - 135) * 192 + ($xOffset / 10))
+			$myY = Round(($ySection - 92) * 192 + ($yOffset / 10))
+			$angle = ParseWord()
+			$dFlag = Dec(ParseByte())
+			$walkingFlag = Dec(ParseByte())
+			If $dFlag = 0 Then
+				ParseByte()
+				ParseWord() ;angle again
+			Else
+				ParseWord() ;x sec & ysec, skipping
+				ParseWord()
+				ParseWord()
+				ParseWord()
+			EndIf
+			$deadFlag = ParseByte()
+			$actionFlag = ParseByte()
+			$zerkFlag = ParseByte()
+			$dunno = ParseByte()
+			$walkSpeed = _WinAPI_IntToFloat(Dec(ParseDword()))
+			$runSpeed = _WinAPI_IntToFloat(Dec(ParseDword()))
+			$zerkSpeed = _WinAPI_IntToFloat(Dec(ParseDword()))
+			$buffCount = Dec(ParseByte())
+			For $i = 1 To $buffCount
+				ParseDword() ;buff id
+				ParseDword() ;duration
+			Next
+			$nameLength = Dec(ParseWord())
+			$charName = ParseAscii($nameLength)
+
+			If $loggedIn = False Then
+				$loggedIn = True
+			EndIf
+
+			$loading = False
+			If $botReturned = 1 Then
+				$botReturned = 0
+			EndIf
+			If $relog = True Then
+				$relog = False
+			EndIf
+
+		Case "B045" ;select response
+			If $walking = True Then
+				BeginParse($data, $size)
+				$flag = ParseByte()
+				If $flag = "01" Then Return "selected"
+			EndIf
+
+		Case "B06C" ;party form list
+			BeginParse($data, $size)
+			$flag = ParseByte()
+
+			If $flag = "01" And $listRequested = True Then
+
+				$totalPages = Dec(ParseByte())
+				Dec(ParseByte()) ;current page
+				$ptAmount = Dec(ParseByte())
+				For $i = 1 To $ptAmount
+					$ptNumber = ParseDword()
+					ParseDword() ;party id or something
+					$length = Dec(ParseWord())
+					$jNick = ParseAscii($length)
+					ParseByte() ;pt type flag
+					ParseByte() ;pt type flag
+					ParseByte() ;pt type flag
+					ParseByte() ;pt type flag
+					ParseByte() ;min level
+					ParseByte() ;max level
+					$length = Dec(ParseWord())
+					ParseUnicode($length)
+				Next
+
+				If $currentPage = $totalPages Then
+					$listRequested = False
+					$currentPage = 1
+				Else
+					InjectPacket("706C", Hex($currentPage, 2)) ;next page please
+					$currentPage += 1
+				EndIf
+			Else
+				$listRequested = False
+				$currentPage = 1
+			EndIf
+
+		Case "34B5"
+			If $clientless = True Then
+				InjectPacket("34B6", "", "0300")
+			EndIf
+
+		Case "B021" ;object moving
+			BeginParse($data, $size)
+			$id = ParseDword()
+			$flag = ParseByte()
+			If $flag = "01" Then
+				$xOffset = ""
+				$zOffset = ""
+				$yOffset = ""
+
+				$xSection = Dec(ParseByte())
+				$ySection = Dec(ParseByte())
+				$x = Round(($xSection - 135) * 192 + ($xOffset /10))
+				$y = Round(($ySection - 92) * 192 + ($yOffset / 10))
+				If $id = $myId Then
+					If $run = true AND Distance($myX, $x, $myY, $y) > 500 Then ;in case theres an error
+						;nothing for now
+					Else
+						$arrived = false
+						$myX = $x
+						$myY = $y
+
+						$myYsection = $ySection
+					EndIf
+				EndIf
+			EndIf
+
+		Case "303D" ;statistics (phy atk, etc)
+			BeginParse($data, $size)
+			$minPhy = Dec(ParseDword())
+			$maxPhy = Dec(ParseDword())
+			$minMag = Dec(ParseDword())
+			$maxMag = Dec(ParseDword())
+			$phyDef = Dec(ParseWord())
+			$magDef = Dec(ParseWord())
+			$hitRate = Dec(ParseWord())
+			$parry = Dec(ParseWord())
+			$maxHp = Dec(ParseDword())
+			$maxMp = Dec(ParseDword())
+			$str = Dec(ParseWord())
+			$int = Dec(ParseWord())
+
+	EndSwitch
+
+	Return $opcode
+EndFunc   ;==>PacketFunc
+
+Func InTown2()
+	If $myY == "" And $myX == "" Then Return False
+
+	$alexnX = -16118
+	$alexnY = 50
+	If Distance($myX, $alexnX, $myY, $alexnY) <= 150 Then Return "alexN"
+
+	$alexsX = -16641
+	$alexsY = -328
+	If Distance($myX, $alexsX, $myY, $alexsY) <= 150 Then Return "alexS"
+
+	$hotanX = 113
+	$hotanY = 13
+	If Distance($myX, $hotanX, $myY, $hotanY) <= 150 Then Return "hotan"
+
+	$dwX = 3550
+	$dwY = 2072
+	If Distance($myX, $dwX, $myY, $dwY) <= 150 Then Return "downhang"
+
+	$janganX = 6431
+	$janganY = 1098
+	If Distance($myX, $janganX, $myY, $janganY) <= 150 Then Return "jangan"
+
+	$samarkandX = -5158
+	$samarkandY = 2830
+	If Distance($myX, $samarkandX, $myY, $samarkandY) <= 150 Then Return "samarkand"
+
+	$constX = -10658
+	$constY = 2604
+	If Distance($myX, $constX, $myY, $constY) <= 150 Then Return "const"
+
+	Return False
+EndFunc   ;==>InTown2
+
+Func _WDAYToWeekday($WDAY = @WDAY)
+
+	Switch $WDAY
+		Case 1
+			Return "Sunday"
+		Case 2
+			Return "Monday"
+		Case 3
+			Return "Tuesday"
+		Case 4
+			Return "Wednesday"
+		Case 5
+			Return "Thursday"
+		Case 6
+			Return "Friday"
+		Case 7
+			Return "Saturday"
+		Case Else
+			Return "unknown"
+	EndSwitch
+
+EndFunc
+
+Func AddTimesToSchedule()
+
+	If GUICtrlRead($Checkbox1) = $GUI_CHECKED Then
+		If GUICtrlRead($Combo1) <> "" And GUICtrlRead($Combo2) <> "" Then
+			$Duplicate = 0
+			For $i = 0 To _GUICtrlListView_GetItemCount($ListView1) - 1
+				If ("Monday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2)) = _GUICtrlListView_GetItemTextString($ListView1, $i) Then $Duplicate = 1
+			Next
+			If $Duplicate = 0 Then
+				GUICtrlCreateListViewItem("Monday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2), $ListView1)
+				AddNewScheduleToArray("Monday", GUICtrlRead($Combo1), GUICtrlRead($Combo2))
+			Else
+				MsgBox(16, "Error", "This schedule already exists.")
+			EndIf
+		EndIf
+	EndIf
+
+	If GUICtrlRead($Checkbox2) = $GUI_CHECKED Then
+		If GUICtrlRead($Combo1) <> "" And GUICtrlRead($Combo2) <> "" Then
+			$Duplicate = 0
+			For $i = 0 To _GUICtrlListView_GetItemCount($ListView1) - 1
+				If ("Tuesday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2)) = _GUICtrlListView_GetItemTextString($ListView1, $i) Then $Duplicate = 1
+			Next
+			If $Duplicate = 0 Then
+				GUICtrlCreateListViewItem("Tuesday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2), $ListView1)
+				AddNewScheduleToArray("Tuesday", GUICtrlRead($Combo1), GUICtrlRead($Combo2))
+			Else
+				MsgBox(16, "Error", "This schedule already exists.")
+			EndIf
+		EndIf
+	EndIf
+
+	If GUICtrlRead($Checkbox3) = $GUI_CHECKED Then
+		If GUICtrlRead($Combo1) <> "" And GUICtrlRead($Combo2) <> "" Then
+			$Duplicate = 0
+			For $i = 0 To _GUICtrlListView_GetItemCount($ListView1) - 1
+				If ("Wednesday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2)) = _GUICtrlListView_GetItemTextString($ListView1, $i) Then $Duplicate = 1
+			Next
+			If $Duplicate = 0 Then
+				GUICtrlCreateListViewItem("Wednesday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2), $ListView1)
+				AddNewScheduleToArray("Wednesday", GUICtrlRead($Combo1), GUICtrlRead($Combo2))
+			Else
+				MsgBox(16, "Error", "This schedule already exists.")
+			EndIf
+		EndIf
+	EndIf
+
+	If GUICtrlRead($Checkbox4) = $GUI_CHECKED Then
+		If GUICtrlRead($Combo1) <> "" And GUICtrlRead($Combo2) <> "" Then
+			$Duplicate = 0
+			For $i = 0 To _GUICtrlListView_GetItemCount($ListView1) - 1
+				If ("Thursday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2)) = _GUICtrlListView_GetItemTextString($ListView1, $i) Then $Duplicate = 1
+			Next
+			If $Duplicate = 0 Then
+				GUICtrlCreateListViewItem("Thursday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2), $ListView1)
+				AddNewScheduleToArray("Thursday", GUICtrlRead($Combo1), GUICtrlRead($Combo2))
+			Else
+				MsgBox(16, "Error", "This schedule already exists.")
+			EndIf
+		EndIf
+	EndIf
+
+	If GUICtrlRead($Checkbox5) = $GUI_CHECKED Then
+		If GUICtrlRead($Combo1) <> "" And GUICtrlRead($Combo2) <> "" Then
+			$Duplicate = 0
+			For $i = 0 To _GUICtrlListView_GetItemCount($ListView1) - 1
+				If ("Friday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2)) = _GUICtrlListView_GetItemTextString($ListView1, $i) Then $Duplicate = 1
+			Next
+			If $Duplicate = 0 Then
+				GUICtrlCreateListViewItem("Friday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2), $ListView1)
+				AddNewScheduleToArray("Friday", GUICtrlRead($Combo1), GUICtrlRead($Combo2))
+			Else
+				MsgBox(16, "Error", "This schedule already exists.")
+			EndIf
+		EndIf
+	EndIf
+
+	If GUICtrlRead($Checkbox6) = $GUI_CHECKED Then
+		If GUICtrlRead($Combo1) <> "" And GUICtrlRead($Combo2) <> "" Then
+			$Duplicate = 0
+			For $i = 0 To _GUICtrlListView_GetItemCount($ListView1) - 1
+				If ("Saturday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2)) = _GUICtrlListView_GetItemTextString($ListView1, $i) Then $Duplicate = 1
+			Next
+			If $Duplicate = 0 Then
+				GUICtrlCreateListViewItem("Saturday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2), $ListView1)
+				AddNewScheduleToArray("Saturday", GUICtrlRead($Combo1), GUICtrlRead($Combo2))
+			Else
+				MsgBox(16, "Error", "This schedule already exists.")
+			EndIf
+		EndIf
+	EndIf
+
+	If GUICtrlRead($Checkbox7) = $GUI_CHECKED Then
+		If GUICtrlRead($Combo1) <> "" And GUICtrlRead($Combo2) <> "" Then
+			$Duplicate = 0
+			For $i = 0 To _GUICtrlListView_GetItemCount($ListView1) - 1
+				If ("Sunday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2)) = _GUICtrlListView_GetItemTextString($ListView1, $i) Then $Duplicate = 1
+			Next
+			If $Duplicate = 0 Then
+				GUICtrlCreateListViewItem("Sunday|" & GUICtrlRead($Combo1) & "|" & GUICtrlRead($Combo2), $ListView1)
+				AddNewScheduleToArray("Sunday", GUICtrlRead($Combo1), GUICtrlRead($Combo2))
+			Else
+				MsgBox(16, "Error", "This schedule already exists.")
+			EndIf
+		EndIf
+	EndIf
+
+	$File = FileOpen("ScheduleList.txt", 2)
+	For $i = 1 To $ScheduleList[0][0]
+		FileWriteLine($File, $ScheduleList[$i][0])
+	Next
+
+EndFunc
+
+Func DeleteTimesOnSchedule()
+
+	If _GUICtrlListView_GetSelectedCount($ListView1) <> 0 Then
+		$Index = Number(_GUICtrlListView_GetSelectedIndices($ListView1))
+		$Day = _GUICtrlListView_GetItemText($ListView1, $Index, 0)
+		$Hour = _GUICtrlListView_GetItemText($ListView1, $Index, 1)
+		$Minute = _GUICtrlListView_GetItemText($ListView1, $Index, 2)
+		_ArrayDelete($ScheduleList, _ArraySearch($ScheduleList, $Day & " " & $Hour & ":" & $Minute))
+		$ScheduleList[0][0] = UBound($ScheduleList) - 1
+		$File = FileOpen("ScheduleList.txt", 2)
+		For $i = 1 To $ScheduleList[0][0]
+			FileWriteLine($File, $ScheduleList[$i][0])
+		Next
+		_GUICtrlListView_DeleteItemsSelected($ListView1)
+	EndIf
+
+EndFunc
+
+Func AddNewScheduleToArray($Day, $Hour, $Minute)
+
+	ReDim $ScheduleList[UBound($ScheduleList)+1][1]
+
+	$ScheduleList[$ScheduleList[0][0]+1][0] = $Day & " " & $Hour & ":" & $Minute
+
+	$ScheduleList[0][0] = $ScheduleList[0][0] + 1
+
+EndFunc
+
+Func CreateScheduleFromFile()
+
+	For $i = 1 to _FileCountLines("ScheduleList.txt")
+
+		$Read = FileReadLine("ScheduleList.txt", $i)
+		$Day = StringRegExpReplace($Read, "([[:alpha:]]+)\s([[:digit:]]{1,2})\:([[:digit:]]{1,2})", "$1")
+		$Hour = StringRegExpReplace($Read, "([[:alpha:]]+)\s([[:digit:]]{1,2})\:([[:digit:]]{1,2})", "$2")
+		$Minute = StringRegExpReplace($Read, "([[:alpha:]]+)\s([[:digit:]]{1,2})\:([[:digit:]]{1,2})", "$3")
+
+		AddNewScheduleToArray($Day, $Hour, $Minute)
+		GUICtrlCreateListViewItem($Day & "|" & $Hour & "|" & $Minute, $ListView1)
+	Next
+
+EndFunc
+
+Func ToolLogin()
+
+	$hLoginForm = GUICreate("Login", 250, 82, 208, 204)
+	$hLabelToolID = GUICtrlCreateLabel("ID:", 8, 8, 25, 17)
+	$hLabelToolPW = GUICtrlCreateLabel("PW:", 8, 32, 25, 17)
+	$hInputToolID = GUICtrlCreateInput("", 40, 4, 121, 21)
+	GUICtrlSetData(-1, IniRead("CoinFarmer.ini", "General", "ToolID", ""))
+	$hInputToolPW = GUICtrlCreateInput("", 40, 28, 121, 21, $ES_PASSWORD)
+	GUICtrlSetData(-1, IniRead("CoinFarmer.ini", "General", "ToolPW", ""))
+	$hButtonLogin = GUICtrlCreateButton("Login", 168, 12, 75, 25)
+	$hCheckBoxSaveLogin = GUICtrlCreateCheckbox("Save Login and automatically login at startup.", 8, 56, 180, 17)
+	GUICtrlSetState(-1, StringRegExpReplace(IniRead("CoinFarmer.ini", "General", "AutoLogin", $GUI_UNCHECKED), "0", $GUI_UNCHECKED))
+	If GUICtrlRead($hCheckBoxSaveLogin) = $GUI_CHECKED And GUICtrlRead($hInputToolID) <> "" And GUICtrlRead($hInputToolPW) Then
+		$ToolUsername = GUICtrlRead($hInputToolID)
+		$ToolPassword = GUICtrlRead($hInputToolPW)
+		If $ToolUsername <> "" And $ToolPassword <> "" Then
+			$LoginStatus = _INetGetSource("http://www.flownzu.com/CoinFarmerLogin.php?username=" & $ToolUsername & "&password=" & $ToolPassword & "&HwID=" & _WinAPI_UniqueHardwareID())
+			Switch $LoginStatus
+				Case 0
+					MsgBox(0, "", "Wrong login information entered.")
+					GUISetState(@SW_SHOW)
+				Case 1
+					If GUICtrlRead($hCheckBoxSaveLogin) = $GUI_CHECKED Then
+						IniWrite("CoinFarmer.ini", "General", "ToolID", $ToolUsername)
+						IniWrite("CoinFarmer.ini", "General", "ToolPW", $ToolPassword)
+						IniWrite("CoinFarmer.ini", "General", "AutoLogin", 1)
+					Else
+						IniWrite("CoinFarmer.ini", "General", "ToolID", "")
+						IniWrite("CoinFarmer.ini", "General", "ToolPW", "")
+						IniWrite("CoinFarmer.ini", "General", "AutoLogin", 0)
+					EndIf
+					GUIDelete($hLoginForm)
+					Return 1
+				Case 2
+					MsgBox(0, "", "HwID Limit exceeded. Please wait until it is reseted (UTC 00:00).")
+					GUISetState(@SW_SHOW)
+				Case Else
+					MsgBox(0, "", $LoginStatus)
+					GUISetState(@SW_SHOW)
+			EndSwitch
+		Else
+			MsgBox(0, "", "Please enter all login information to continue.")
+			GUISetState(@SW_SHOW)
+		EndIf
+	Else
+		GUISetState(@SW_SHOW)
+	EndIf
+
+	While 1
+		$nMsg = GUIGetMsg()
+		Switch $nMsg
+			Case $GUI_EVENT_CLOSE
+				Exit
+			Case $hButtonLogin
+				$ToolUsername = GUICtrlRead($hInputToolID)
+				$ToolPassword = GUICtrlRead($hInputToolPW)
+				If $ToolUsername <> "" And $ToolPassword <> "" Then
+					$LoginStatus = _INetGetSource("http://www.flownzu.com/CoinFarmerLogin.php?username=" & $ToolUsername & "&password=" & $ToolPassword & "&HwID=" & _WinAPI_UniqueHardwareID())
+					Switch $LoginStatus
+						Case 0
+							MsgBox(0, "", "Wrong login information entered.")
+						Case 1
+							If GUICtrlRead($hCheckBoxSaveLogin) = $GUI_CHECKED Then
+								IniWrite("CoinFarmer.ini", "General", "ToolID", $ToolUsername)
+								IniWrite("CoinFarmer.ini", "General", "ToolPW", $ToolPassword)
+								IniWrite("CoinFarmer.ini", "General", "AutoLogin", 1)
+							Else
+								IniWrite("CoinFarmer.ini", "General", "ToolID", "")
+								IniWrite("CoinFarmer.ini", "General", "ToolPW", "")
+								IniWrite("CoinFarmer.ini", "General", "AutoLogin", 0)
+							EndIf
+							GUIDelete($hLoginForm)
+							ExitLoop
+						Case 2
+							MsgBox(0, "", "HwID Limit exceeded. Please wait until it is reseted (UTC 00:00).")
+						Case Else
+							MsgBox(0, "", $LoginStatus)
+					EndSwitch
+				Else
+					MsgBox(0, "", "Please enter all login information to continue.")
+				EndIf
+		EndSwitch
+	WEnd
+
+EndFunc   ;==>Login

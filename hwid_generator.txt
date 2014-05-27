@@ -1,0 +1,118 @@
+#include <String.au3>
+ProgressOn("HWID Generator", "Generating HWID ....", "0%")
+
+_GenerateHardware_ID(@ScriptDir & '\main.hwid')
+
+ProgressOff()
+MsgBox(0, "", "HWID has been created!")
+
+Func _GenerateHardware_ID($saveinfile)
+	$sleepTime = 75
+
+	$wbemFlagReturnImmForwardOnly = 0x10 + 0x20
+	$colItems = ""
+	$strComputer = @ComputerName
+
+	$output = ""
+	$objWMIService = ObjGet("winmgmts:\\" & $strComputer & "\root\CIMV2")
+	$colItems = $objWMIService.ExecQuery("SELECT * FROM Win32_BIOS", "WQL", _
+			$wbemFlagReturnImmForwardOnly)
+
+	If IsObj($colItems) Then
+		For $objItem In $colItems
+			$strBiosCharacteristics = $objItem.BiosCharacteristics(1)
+			$output = $output & "BiosCharacteristics: " & $strBiosCharacteristics & @CRLF
+			ProgressSet(2, 'BiosCharacteristics')
+			Sleep($sleepTime)
+			$strBIOSVersion = $objItem.BIOSVersion(1)
+			$output = $output & "BIOSVersion: " & $strBIOSVersion & @CRLF
+			ProgressSet(4, 'BIOSVersion')
+			Sleep($sleepTime)
+			$output = $output & "BuildNumber: " & $objItem.BuildNumber & @CRLF
+			ProgressSet(6, 'BuildNumber')
+			Sleep($sleepTime)
+			$output = $output & "Caption: " & $objItem.Caption & @CRLF
+			ProgressSet(8, 'Caption')
+			Sleep($sleepTime)
+			$output = $output & "CodeSet: " & $objItem.CodeSet & @CRLF
+			ProgressSet(10, 'CodeSet')
+			Sleep($sleepTime)
+			$output = $output & "CurrentLanguage: " & $objItem.CurrentLanguage & @CRLF
+			ProgressSet(12, 'CurrentLanguage')
+			Sleep($sleepTime)
+			$output = $output & "Description: " & $objItem.Description & @CRLF
+			ProgressSet(14, 'Description')
+			Sleep($sleepTime)
+			$output = $output & "IdentificationCode: " & $objItem.IdentificationCode & @CRLF
+			ProgressSet(16, 'IdentificationCode')
+			Sleep($sleepTime)
+			$output = $output & "InstallableLanguages: " & $objItem.InstallableLanguages & @CRLF
+			ProgressSet(18, 'InstallableLanguages')
+			Sleep($sleepTime)
+			$output = $output & "InstallDate: " & WMIDateStringToDate($objItem.InstallDate) & @CRLF
+			ProgressSet(20, 'InstallDate')
+			Sleep($sleepTime)
+			$output = $output & "LanguageEdition: " & $objItem.LanguageEdition & @CRLF
+			ProgressSet(22, 'LanguageEdition')
+			Sleep($sleepTime)
+			$strListOfLanguages = $objItem.ListOfLanguages()
+			Sleep($sleepTime)
+			$output = $output & "ListOfLanguages: " & $strListOfLanguages & @CRLF
+			ProgressSet(25, 'ListOfLanguages')
+			Sleep($sleepTime)
+			$output = $output & "Manufacturer: " & $objItem.Manufacturer & @CRLF
+			ProgressSet(27, 'Manufacturer')
+			Sleep($sleepTime)
+			$output = $output & "Name: " & $objItem.Name & @CRLF
+			ProgressSet(30,		'Name')
+			Sleep($sleepTime)
+			$output = $output & "OtherTargetOS: " & $objItem.OtherTargetOS & @CRLF
+			ProgressSet(33, 'OtherTargetOS')
+			Sleep($sleepTime)
+			$output = $output & "PrimaryBIOS: " & $objItem.PrimaryBIOS & @CRLF
+			ProgressSet(35, 'PrimaryBIOS')
+			Sleep($sleepTime)
+			$output = $output & "ReleaseDate: " & WMIDateStringToDate($objItem.ReleaseDate) & @CRLF
+			ProgressSet(40, 'ReleaseDate')
+			Sleep($sleepTime)
+			$output = $output & "SerialNumber: " & $objItem.SerialNumber & @CRLF
+			ProgressSet(45, 'SerialNumber')
+			Sleep($sleepTime)
+			$output = $output & "SMBIOSBIOSVersion: " & $objItem.SMBIOSBIOSVersion & @CRLF
+			ProgressSet(50, 'SMBIOSBIOSVersion')
+			Sleep($sleepTime)
+			$output = $output & "SMBIOSMajorVersion: " & $objItem.SMBIOSMajorVersion & @CRLF
+			ProgressSet(55, 'SMBIOSMajorVersion')
+			Sleep($sleepTime)
+			$output = $output & "SMBIOSMinorVersion: " & $objItem.SMBIOSMinorVersion & @CRLF
+			ProgressSet(60, 'SMBIOSMinorVersion')
+			Sleep($sleepTime)
+			$output = $output & "SMBIOSPresent: " & $objItem.SMBIOSPresent & @CRLF
+			ProgressSet(65, 'SMBIOSPresent')
+			Sleep($sleepTime)
+			$output = $output & "SoftwareElementID: " & $objItem.SoftwareElementID & @CRLF
+			ProgressSet(70, 'SoftwareElementID')
+			Sleep($sleepTime)
+			$output = $output & "SoftwareElementState: " & $objItem.SoftwareElementState & @CRLF
+			ProgressSet(80, 'SoftwareElementState')
+			Sleep($sleepTime)
+			$output = $output & "Status: " & $objItem.Status & @CRLF
+			ProgressSet(90, 'Status')
+			Sleep($sleepTime)
+			$output = $output & "TargetOperatingSystem: " & $objItem.TargetOperatingSystem & @CRLF
+			ProgressSet(100, 'TargetOperatingSystem')
+			Sleep($sleepTime)
+			$output = $output & "Version: " & $objItem.Version & @CRLF
+		Next
+		FileWrite($saveinfile, _StringEncrypt(1, $output, 1337, 1))
+		Return True
+	Else
+		Return False
+	EndIf
+EndFunc   ;==>_GenerateHardware_ID
+
+Func WMIDateStringToDate($dtmDate)
+	Return (StringMid($dtmDate, 5, 2) & "/" & _
+			StringMid($dtmDate, 7, 2) & "/" & StringLeft($dtmDate, 4) _
+			 & " " & StringMid($dtmDate, 9, 2) & ":" & StringMid($dtmDate, 11, 2) & ":" & StringMid($dtmDate, 13, 2))
+EndFunc   ;==>WMIDateStringToDate

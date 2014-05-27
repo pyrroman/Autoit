@@ -1,0 +1,41 @@
+#include <String.au3>
+
+
+If Not FileExists("license") Then
+	$sHWID = _Generate_HWID()
+	$sHWID_filename = "unique.hwid"
+	If FileExists($sHWID_filename) Then FileDelete($sHWID_filename)
+	FileWrite($sHWID_filename, $sHWID)
+	MsgBox(0, "HWID", "Lizenzdatei wurde erstellt, bitte setzten sie sich mit dem Support in Verbindung.")
+	Exit
+Else
+	$LicenseCheck = _Check_HWID()
+	If Not $LicenseCheck Then
+		MsgBox(16, "HWID", "fehlerhafte Lizenzdatei!")
+	Else
+		MsgBox(0, "", "Lizenz wurde erfolgreich überprüft")
+	EndIf
+EndIf
+
+
+
+Func _Check_HWID()
+	$sStringNeu = MasterConfuse(_Generate_HWID())
+	If FileRead("license") = $sStringNeu Then
+		Return True
+	EndIf
+	Return False
+EndFunc   ;==>_Check_HWID
+
+Func _Generate_HWID()
+	$sString = @UserName & @ComputerName & @OSArch & @OSBuild & @OSLang & @CPUArch
+	ConsoleWrite($sString & @CRLF)
+	$sEncryptString = _StringEncrypt(1, $sString, StringLen($sString), 2)
+	ConsoleWrite($sEncryptString & @CRLF)
+	Return $sEncryptString
+EndFunc   ;==>_Generate_HWID
+
+
+Func MasterConfuse($sString)
+	Return _StringReverse($sString)
+EndFunc   ;==>MasterConfuse
